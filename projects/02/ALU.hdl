@@ -42,5 +42,42 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-   // Put you code here:
+    // calculates altered x-value depending on selectors zx and nx
+    DMux4Way16(in=x, sel[0]=zx, sel[1]=nx, a=xnorm, b=zerox, c=negatex, d=negatezerox);
+    And16(a=zerox, b[0..15]=false, out=zeroedx);
+    Not16(in=negatex, out=notx);
+    And16(a=negatezerox, b[0..15]=false, out=negatingzerox);
+    Not16(in=negatingzerox, out=onesx);
+    Mux4Way16(a=xnorm, b=zeroedx, c=notx, d=onesx, sel[0]=zx, sel[1]=nx, out=xval);
+
+    // calculates altered y-value depending on selectors zy and ny
+    DMux4Way16(in=y, sel[0]=zy, sel[1]=ny, a=ynorm, b=zeroy, c=negatey, d=negatezeroy);
+    And16(a=zeroy, b[0..15]=false, out=zeroedy);
+    Not16(in=negatey, out=noty);
+    And16(a=negatezeroy, b[0..15]=false, out=negatingzeroy);
+    Not16(in=negatingzeroy, out=onesy);
+    Mux4Way16(a=ynorm, b=zeroedy, c=noty, d=onesy, sel[0]=zy, sel[1]=ny, out=yval);
+
+    // x+y and x&y
+    Add16(a=xval, b=yval, out=added);
+    And16(a=xval, b=yval, out=anded);
+
+    // applies the f-selector do choose between x+y and x&y
+    Mux16(a=anded, b=added, sel=f, out=comp);
+
+    // negates the output depending on no-selector
+    DMux16(in=comp, sel=no, a=out1, b=negateout);
+    Not16(in=negateout, out=out2);
+    Mux16(a=out1, b=out2, sel=no, out=output);
+
+    // feeds the output to the out pin
+    Not16(in=output, out=notoutput);
+    Not16(in=notoutput, out=out);
+
+    // calculates whether the output is negative
+    And16(a=output, b[0..15]=true, out[0..14]=nothing, out[15]=ng);
+
+    // calculates whether the output is zero
+    Or16Way(in=notoutput, out=ors);
+    Not(in=ors, out=zr);
 }
